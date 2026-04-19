@@ -40,10 +40,11 @@ async function loadWords() {
     const text = await res.text();
 
     words = text
-      .split("\n")
-      .map(r => r.trim())
-      .filter(r => r && r.includes(","))
-
+  .split("\n")
+  .slice(1) // 🔥 跳過第一行（表頭）
+  .map(r => r.trim())
+  .filter(r => r && r.includes(","))
+      
       .map(row => {
         const cols = row.split(",");
 
