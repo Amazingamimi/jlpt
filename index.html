@@ -37,17 +37,21 @@ async function loadWords() {
     const res = await fetch(url);
     const data = await res.json();
 
+    if (data.error) {
+      throw new Error(data.message);
+    }
+
     words = data.filter(w =>
       w.word && w.reading && w.meaning
     );
 
-    console.log("loaded:", words);
+    console.log("✅ words loaded:", words);
 
     nextQuestion();
 
   } catch (err) {
 
-    console.error(err);
+    console.error("❌ API error:", err);
 
     document.body.innerHTML =
       "<h2>❌ 載入失敗</h2><pre>" + err.message + "</pre>";
