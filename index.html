@@ -1,19 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>JLPT 測驗</title>
-</head>
-
-<body>
-
-<h2 id="question"></h2>
-<div id="choices"></div>
-<p id="result"></p>
-<button onclick="nextQuestion()">下一題</button>
-
-<script>
-
 <script>
 
 let words = [];
@@ -99,39 +83,4 @@ function checkAnswer(ans) {
 // 🔥 啟動
 loadWords();
 
-</script>;
-
-let currentAnswer = "";
-
-function nextQuestion() {
-  const word = words[Math.floor(Math.random() * words.length)];
-
-  document.getElementById("question").innerText = word.word;
-
-  const options = [word.meaning, "錯誤1", "錯誤2", "錯誤3"]
-    .sort(() => Math.random() - 0.5);
-
-  currentAnswer = word.meaning;
-
-  const div = document.getElementById("choices");
-  div.innerHTML = "";
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.innerText = opt;
-    btn.onclick = () => checkAnswer(opt);
-    div.appendChild(btn);
-  });
-}
-
-function checkAnswer(ans) {
-  document.getElementById("result").innerText =
-    ans === currentAnswer ? "✅" : "❌";
-}
-
-nextQuestion();
-
 </script>
-
-</body>
-</html>
