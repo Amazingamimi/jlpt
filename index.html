@@ -13,70 +13,136 @@
 let words = [];
 let currentAnswer = "";
 
+// -------------------- 工具 --------------------
+
 function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
+  return arr
+    .filter(v => v) // 去掉空值
+    .sort(() => Math.random() - 0.5);
 }
+
+// -------------------- 讀 Google Sheets --------------------
 
 async function loadWords() {
-  const url = "https://docs.google.com/spreadsheets/d/1CShs1cYgtX6yRyNtR6ukF4D7wG5roNjQk69-lxh1U80/export?format=csv";
+  try {
 
-  const res = await fetch(url);
-  const text = await res.text();
+    const url =
+      "https://docs.google.com/spreadsheets/d/1CShs1cYgtX6yRyNtR6ukF4D7wG5roNjQk69-lxh1U80/export?format=csv";
 
-  words = text
-    .split("\n")
-    .map(r => r.trim())
-    .filter(r => r && r.includes(","))
-    .map(row => {
-      const cols = row.split(",");
-      return {
-        word: cols[1],
-        reading: cols[2],
-        meaning: cols[3]
-      };
-    })
-    .filter(w => w.word);
+    const res = await fetch(url);
 
-  nextQuestion();
+    if (!res.ok) throw new Error("HTTP錯誤：" + res.status);
+
+    const text = await res.text();
+
+    words = text
+      .split("\n")
+      .map(r => r.trim())
+      .filter(r => r && r.includes(",")) // 去空行
+
+      .map(row => {
+        const cols = row.split(",");
+
+        return {
+          level: cols[0]?.trim(),
+          word: cols[1]?.trim(),
+          reading: cols[2]?.trim(),
+          meaning: cols[3]?.trim()
+        };
+      })
+
+      .filter(w =>
+        w.word && w.reading && w.meaning
+      );
+
+    console.log("words loaded:", words);
+
+    if (!words.length) throw new Error("資料為空");
+
+    nextQuestion();
+
+  } catch (err) {
+    console.error(err);
+    document.body.innerHTML =
+      "<h2>❌ 載入失敗</h2><pre>" + err.message + "</pre>";
+  }
 }
+
+// -------------------- 出題 --------------------
 
 function nextQuestion() {
 
-  const q = document.getElementById("question");
-  const c = document.getElementById("choices");
-  const r = document.getElementById("result");
+  const qEl = document.getElementById("question");
+  const cEl = document.getElementById("choices");
+  const rEl = document.getElementById("result");
 
-  if (!q || !c || !r) {
-    console.error("❌ HTML元素不存在");
+  if (!qEl || !cEl || !rEl) {
+    console.error("❌ DOM不存在");
     return;
   }
 
-  r.innerText = "";
+  rEl.innerText = "";
 
   const word = words[Math.floor(Math.random() * words.length)];
 
-  const options = shuffle([
-    word.meaning,
-    "錯誤1",
-    "錯誤2",
-    "錯誤3"
-  ]);
+  const type = Math.floor(Math.random() * 3);
 
-  currentAnswer = word.meaning;
+  let question = "";
+  let correct = "";
+  let pool = [];
 
-  q.innerText = word.word;
+  // ---------------- 題型 ----------------
 
-  c.innerHTML = "";
+  if (type === 0) {
+    question = word.word;
+    correct = word.meaning;
+    pool = words.map(w => w.meaning);
+  }
+
+  else if (type === 1) {
+    question = word.word;
+    correct = word.reading;
+    pool = words.map(w => w.reading);
+  }
+
+  else {
+    question = word.reading;
+    correct = word.word;
+    pool = words.map(w => w.word);
+  }
+
+  // ---------------- 選項處理 ----------------
+
+  let options = shuffle(pool).slice(0, 4);
+
+  if (!options.includes(correct)) {
+    options[0] = correct;
+  }
+
+  options = shuffle(options);
+
+  currentAnswer = correct;
+
+  // ---------------- 顯示 ----------------
+
+  qEl.innerText = question;
+  cEl.innerHTML = "";
 
   options.forEach(opt => {
     const btn = document.createElement("button");
+
     btn.innerText = opt;
+
     btn.onclick = () => {
-      r.innerText = opt === currentAnswer ? "✅ 正確" : "❌ 錯誤";
+      rEl.innerText =
+        opt === currentAnswer ? "✅ 正確" : "❌ 錯誤：" + currentAnswer;
     };
-    c.appendChild(btn);
+
+    cEl.appendChild(btn);
   });
 }
+
+// -------------------- 啟動 --------------------
 
 loadWords();
 
