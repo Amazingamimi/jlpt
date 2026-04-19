@@ -14,10 +14,92 @@
 
 <script>
 
-const words = [
-  { word: "食べる", meaning: "吃" },
-  { word: "飲む", meaning: "喝" }
-];
+<script>
+
+let words = [];
+let currentAnswer = "";
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+// 🔥 讀 Google Sheets
+async function loadWords() {
+  const url = "https://docs.google.com/spreadsheets/d/1CShs1cYgtX6yRyNtR6ukF4D7wG5roNjQk69-lxh1U80/export?format=csv";
+
+  const res = await fetch(url);
+  const text = await res.text();
+
+  words = text
+    .split("\n")
+    .slice(1)
+    .map(row => {
+      const [level, word, reading, meaning] = row.split(",");
+      return { level, word, reading, meaning };
+    })
+    .filter(w => w.word);
+
+  nextQuestion();
+}
+
+function nextQuestion() {
+  document.getElementById("result").innerText = "";
+
+  const word = words[Math.floor(Math.random() * words.length)];
+
+  const type = Math.floor(Math.random() * 3);
+
+  let question = "";
+  let correct = "";
+  let options = [];
+
+  if (type === 0) {
+    question = word.word;
+    correct = word.meaning;
+    options = shuffle(words.map(w => w.meaning)).slice(0, 4);
+  }
+
+  else if (type === 1) {
+    question = word.word;
+    correct = word.reading;
+    options = shuffle(words.map(w => w.reading)).slice(0, 4);
+  }
+
+  else {
+    question = word.reading;
+    correct = word.word;
+    options = shuffle(words.map(w => w.word)).slice(0, 4);
+  }
+
+  if (!options.includes(correct)) {
+    options[0] = correct;
+    options = shuffle(options);
+  }
+
+  currentAnswer = correct;
+
+  document.getElementById("question").innerText = question;
+
+  const div = document.getElementById("choices");
+  div.innerHTML = "";
+
+  options.forEach(opt => {
+    const btn = document.createElement("button");
+    btn.innerText = opt;
+    btn.onclick = () => checkAnswer(opt);
+    div.appendChild(btn);
+  });
+}
+
+function checkAnswer(ans) {
+  document.getElementById("result").innerText =
+    ans === currentAnswer ? "✅ 正確" : "❌ 錯誤：" + currentAnswer;
+}
+
+// 🔥 啟動
+loadWords();
+
+</script>;
 
 let currentAnswer = "";
 
