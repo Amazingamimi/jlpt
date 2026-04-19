@@ -2,11 +2,10 @@
 
 <h1>JLPT 測驗</h1>
 
-<!-- 🔥 這裡是重點：題目區 -->
 <h2 id="question"></h2>
 <div id="choices"></div>
 <p id="result"></p>
-  
+
 <script>
 
 let words = [];
@@ -16,106 +15,69 @@ function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
-// 🔥 讀 Google Sheets
 async function loadWords() {
-  try {
+  const url = "https://docs.google.com/spreadsheets/d/1CShs1cYgtX6yRyNtR6ukF4D7wG5roNjQk69-lxh1U80/export?format=csv";
 
-    const url = "https://docs.google.com/spreadsheets/d/1CShs1cYgtX6yRyNtR6ukF4D7wG5roNjQk69-lxh1U80/export?format=csv";
+  const res = await fetch(url);
+  const text = await res.text();
 
-    const res = await fetch(url);
+  words = text
+    .split("\n")
+    .map(r => r.trim())
+    .filter(r => r && r.includes(","))
+    .map(row => {
+      const cols = row.split(",");
+      return {
+        word: cols[1],
+        reading: cols[2],
+        meaning: cols[3]
+      };
+    })
+    .filter(w => w.word);
 
-    if (!res.ok) throw new Error("HTTP錯誤：" + res.status);
-
-    const text = await res.text();
-
-    words = text
-      .split("\n")
-      .map(r => r.trim())
-      .filter(r => r && r.includes(","))
-      .map(row => {
-        const cols = row.split(",");
-        return {
-          level: cols[0],
-          word: cols[1],
-          reading: cols[2],
-          meaning: cols[3]
-        };
-      })
-      .filter(w => w.word);
-
-    console.log("words loaded:", words);
-
-    if (!words.length) throw new Error("words是空的");
-
-    nextQuestion();
-
-  } catch (err) {
-    console.error("❌ 錯誤：", err);
-
-    document.body.innerHTML = `
-      <h2>❌ 載入失敗</h2>
-      <p>${err.message}</p>
-    `;
-  }
+  nextQuestion();
 }
 
 function nextQuestion() {
-  document.getElementById("result").innerText = "";
+
+  const q = document.getElementById("question");
+  const c = document.getElementById("choices");
+  const r = document.getElementById("result");
+
+  if (!q || !c || !r) {
+    console.error("❌ HTML元素不存在");
+    return;
+  }
+
+  r.innerText = "";
 
   const word = words[Math.floor(Math.random() * words.length)];
 
-  const type = Math.floor(Math.random() * 3);
+  const options = shuffle([
+    word.meaning,
+    "錯誤1",
+    "錯誤2",
+    "錯誤3"
+  ]);
 
-  let question = "";
-  let correct = "";
-  let options = [];
+  currentAnswer = word.meaning;
 
-  if (type === 0) {
-    question = word.word;
-    correct = word.meaning;
-    options = shuffle(words.map(w => w.meaning)).slice(0, 4);
-  }
+  q.innerText = word.word;
 
-  else if (type === 1) {
-    question = word.word;
-    correct = word.reading;
-    options = shuffle(words.map(w => w.reading)).slice(0, 4);
-  }
-
-  else {
-    question = word.reading;
-    correct = word.word;
-    options = shuffle(words.map(w => w.word)).slice(0, 4);
-  }
-
-  if (!options.includes(correct)) {
-    options[0] = correct;
-    options = shuffle(options);
-  }
-
-  currentAnswer = correct;
-
-  document.getElementById("question").innerText = question;
-
-  const div = document.getElementById("choices");
-  div.innerHTML = "";
+  c.innerHTML = "";
 
   options.forEach(opt => {
     const btn = document.createElement("button");
     btn.innerText = opt;
-    btn.onclick = () => checkAnswer(opt);
-    div.appendChild(btn);
+    btn.onclick = () => {
+      r.innerText = opt === currentAnswer ? "✅ 正確" : "❌ 錯誤";
+    };
+    c.appendChild(btn);
   });
 }
 
-function checkAnswer(ans) {
-  document.getElementById("result").innerText =
-    ans === currentAnswer ? "✅ 正確" : "❌ 錯誤：" + currentAnswer;
-}
-
-// 🔥 啟動
 loadWords();
 
 </script>
 
-  </body>
+</body>
