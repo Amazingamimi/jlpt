@@ -14,19 +14,17 @@ let words = [];
 let currentAnswer = "";
 
 // =========================
-// 工具：洗牌 + 清理
+// 洗牌（安全版）
 // =========================
-
 function shuffle(arr) {
   return arr
-    .filter(v => v && v !== "undefined" && !v.includes("錯誤"))
+    .filter(v => v && v !== "undefined")
     .sort(() => Math.random() - 0.5);
 }
 
 // =========================
-// 讀 Google Sheets
+// 載入 API
 // =========================
-
 async function loadWords() {
 
   const url =
@@ -35,8 +33,14 @@ async function loadWords() {
   try {
 
     const res = await fetch(url);
+
+    if (!res.ok) {
+      throw new Error("HTTP錯誤：" + res.status);
+    }
+
     const data = await res.json();
 
+    // 🚨 API錯誤檢查
     if (data.error) {
       throw new Error(data.message);
     }
@@ -47,33 +51,38 @@ async function loadWords() {
 
     console.log("✅ words loaded:", words);
 
+    if (!words.length) {
+      throw new Error("題庫是空的");
+    }
+
     nextQuestion();
 
   } catch (err) {
 
-    console.error("❌ API error:", err);
+    console.error("❌ loadWords error:", err);
 
-    document.body.innerHTML =
-      "<h2>❌ 載入失敗</h2><pre>" + err.message + "</pre>";
+    document.body.innerHTML = `
+      <h2>❌ 載入失敗</h2>
+      <pre>${err.message}</pre>
+    `;
   }
 }
 
 // =========================
 // 出題
 // =========================
-
 function nextQuestion() {
 
-  const qEl = document.getElementById("question");
-  const cEl = document.getElementById("choices");
-  const rEl = document.getElementById("result");
+  const q = document.getElementById("question");
+  const c = document.getElementById("choices");
+  const r = document.getElementById("result");
 
-  if (!qEl || !cEl || !rEl) {
-    console.error("❌ DOM不存在");
+  if (!q || !c || !r) {
+    console.error("❌ HTML缺少必要元素");
     return;
   }
 
-  rEl.innerText = "";
+  r.innerText = "";
 
   const word = words[Math.floor(Math.random() * words.length)];
 
@@ -86,7 +95,6 @@ function nextQuestion() {
   // =========================
   // 題型
   // =========================
-
   if (type === 0) {
     question = word.word;
     correct = word.meaning;
@@ -106,9 +114,8 @@ function nextQuestion() {
   }
 
   // =========================
-  // 選項處理（防污染）
+  // 選項處理
   // =========================
-
   let options = shuffle(pool).slice(0, 4);
 
   if (!options.includes(correct)) {
@@ -120,32 +127,31 @@ function nextQuestion() {
   currentAnswer = correct;
 
   // =========================
-  // 顯示
+  // render
   // =========================
-
-  qEl.innerText = question;
-  cEl.innerHTML = "";
+  q.innerText = question;
+  c.innerHTML = "";
 
   options.forEach(opt => {
+
     const btn = document.createElement("button");
 
     btn.innerText = opt;
 
     btn.onclick = () => {
-      rEl.innerText =
+      r.innerText =
         opt === currentAnswer
           ? "✅ 正確"
           : "❌ 錯誤：" + currentAnswer;
     };
 
-    cEl.appendChild(btn);
+    c.appendChild(btn);
   });
 }
 
 // =========================
 // 啟動
 // =========================
-
 loadWords();
 
 </script>
