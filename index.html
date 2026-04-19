@@ -13,15 +13,19 @@
 let words = [];
 let currentAnswer = "";
 
-// -------------------- 工具 --------------------
+// =========================
+// 工具：洗牌 + 清理
+// =========================
 
 function shuffle(arr) {
   return arr
-    .filter(v => v) // 去掉空值
+    .filter(v => v && v !== "undefined" && !v.includes("錯誤"))
     .sort(() => Math.random() - 0.5);
 }
 
-// -------------------- 讀 Google Sheets --------------------
+// =========================
+// 讀 Google Sheets
+// =========================
 
 async function loadWords() {
   try {
@@ -38,7 +42,7 @@ async function loadWords() {
     words = text
       .split("\n")
       .map(r => r.trim())
-      .filter(r => r && r.includes(",")) // 去空行
+      .filter(r => r && r.includes(","))
 
       .map(row => {
         const cols = row.split(",");
@@ -52,23 +56,31 @@ async function loadWords() {
       })
 
       .filter(w =>
-        w.word && w.reading && w.meaning
+        w.word &&
+        w.reading &&
+        w.meaning &&
+        !w.meaning.includes("錯誤") // 🔥 防止錯誤123污染
       );
 
-    console.log("words loaded:", words);
+    console.log("✅ words loaded:", words);
 
     if (!words.length) throw new Error("資料為空");
 
     nextQuestion();
 
   } catch (err) {
-    console.error(err);
-    document.body.innerHTML =
-      "<h2>❌ 載入失敗</h2><pre>" + err.message + "</pre>";
+    console.error("❌ 載入失敗：", err);
+
+    document.body.innerHTML = `
+      <h2>❌ 載入失敗</h2>
+      <pre>${err.message}</pre>
+    `;
   }
 }
 
-// -------------------- 出題 --------------------
+// =========================
+// 出題
+// =========================
 
 function nextQuestion() {
 
@@ -91,7 +103,9 @@ function nextQuestion() {
   let correct = "";
   let pool = [];
 
-  // ---------------- 題型 ----------------
+  // =========================
+  // 題型
+  // =========================
 
   if (type === 0) {
     question = word.word;
@@ -111,7 +125,9 @@ function nextQuestion() {
     pool = words.map(w => w.word);
   }
 
-  // ---------------- 選項處理 ----------------
+  // =========================
+  // 選項處理（防污染）
+  // =========================
 
   let options = shuffle(pool).slice(0, 4);
 
@@ -123,7 +139,9 @@ function nextQuestion() {
 
   currentAnswer = correct;
 
-  // ---------------- 顯示 ----------------
+  // =========================
+  // 顯示
+  // =========================
 
   qEl.innerText = question;
   cEl.innerHTML = "";
@@ -135,17 +153,20 @@ function nextQuestion() {
 
     btn.onclick = () => {
       rEl.innerText =
-        opt === currentAnswer ? "✅ 正確" : "❌ 錯誤：" + currentAnswer;
+        opt === currentAnswer
+          ? "✅ 正確"
+          : "❌ 錯誤：" + currentAnswer;
     };
 
     cEl.appendChild(btn);
   });
 }
 
-// -------------------- 啟動 --------------------
+// =========================
+// 啟動
+// =========================
 
 loadWords();
 
 </script>
-
 </body>
